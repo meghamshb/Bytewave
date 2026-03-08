@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect, memo } from 'react'
 import { useForum } from '../hooks/useForum'
-import PostCard from '../components/PostCard'
-import Skeleton from '../components/Skeleton'
-import EmptyIllustration from '../components/EmptyIllustration'
-import AppNav from '../components/AppNav'
+import PostCard from '../components/common/PostCard'
+import Skeleton from '../components/common/Skeleton'
+import EmptyIllustration from '../components/common/EmptyIllustration'
+import AppNav from '../components/nav/AppNav'
 
 // ─── Inline debounce hook (no extra dep) ─────────────────────────────────────
 function useDebounce(value, delay) {

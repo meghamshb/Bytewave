@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import WaveMark from '../components/WaveMark'
+import WaveMark from '../components/landing/WaveMark'
 
 const FIELD = {
   padding: '13px 16px', borderRadius: 10, fontSize: 14,

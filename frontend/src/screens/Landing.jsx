@@ -3,8 +3,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import Spline from '@splinetool/react-spline'
 import { useHoldActivation } from '../hooks/useHoldActivation'
-import HeroDashboard from '../components/HeroDashboard'
-import WaveMark from '../components/WaveMark'
+import HeroDashboard from '../components/landing/HeroDashboard'
+import WaveMark from '../components/landing/WaveMark'
 
 // Detect mobile once at module level — no re-renders
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768
@@ -119,7 +119,7 @@ function LandingHeader({ onHashNav }) {
             onClick={() => navigate('/auth')}
             onMouseEnter={() => {
               import('./Home').catch(() => {})
-              import('../components/LearnLayout').catch(() => {})
+              import('../components/learn/LearnLayout').catch(() => {})
             }}
             style={{
               padding: '7px 18px', borderRadius: 8,
@@ -324,7 +324,7 @@ export default function Landing() {
       if (dashOpenRef.current) return
       import('./LandingReveal').catch(() => {})
       import('./Home').catch(() => {})
-      import('../components/LearnLayout').catch(() => {})
+      import('../components/learn/LearnLayout').catch(() => {})
       startRef.current?.()
     }
     const up = () => {

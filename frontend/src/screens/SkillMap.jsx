@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import TopicAnimation from '../components/TopicAnimation'
-import Skeleton from '../components/Skeleton'
-import EmptyIllustration from '../components/EmptyIllustration'
+import TopicAnimation from '../components/common/TopicAnimation'
+import Skeleton from '../components/common/Skeleton'
+import EmptyIllustration from '../components/common/EmptyIllustration'
 
-import { getTopicById } from '../physicsTopics'
+import { getTopicById } from '../data/physicsTopics'
 import { useUserId } from '../hooks/useAuth'
 import { track, EVENTS } from '../hooks/useAnalytics'
 

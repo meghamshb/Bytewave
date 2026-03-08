@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { renderMathInText } from '../utils/renderMath'
+import { renderMathInText } from '../../utils/renderMath'
 import 'katex/dist/katex.min.css'
 
 const DEMO_PROMPT = `Explain how an Atwood machine works — show the forces on both masses and derive the acceleration.`

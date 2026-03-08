@@ -1,10 +1,10 @@
 import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { ThemeProvider } from './hooks/ThemeContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import useScrollRestoration from './hooks/useScrollRestoration'
-import LearnLayout from './components/LearnLayout'
-import PhysicsLoader from './components/PhysicsLoader'
+import LearnLayout from './components/learn/LearnLayout'
+import PhysicsLoader from './components/common/PhysicsLoader'
 
 // Code-split every screen — only the current route's chunk is loaded
 const Landing    = lazy(() => import('./screens/Landing'))

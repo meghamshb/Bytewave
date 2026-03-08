@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import AppNav from './AppNav'
+import AppNav from '../nav/AppNav'
 
 export default function LearnLayout() {
   return (

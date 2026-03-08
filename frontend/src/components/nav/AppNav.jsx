@@ -1,10 +1,10 @@
 import { memo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import WaveMark from './WaveMark'
-import { useAuth } from '../hooks/useAuth'
-import { PRIMARY_LINKS, IconMenu } from './nav/navConfig.jsx'
-import UserMenu from './nav/UserMenu'
-import MobileDrawer from './nav/MobileDrawer'
+import WaveMark from '../landing/WaveMark'
+import { useAuth } from '../../hooks/useAuth'
+import { PRIMARY_LINKS, IconMenu } from './navConfig.jsx'
+import UserMenu from './UserMenu'
+import MobileDrawer from './MobileDrawer'
 
 export default memo(function AppNav() {
   const { pathname } = useLocation()

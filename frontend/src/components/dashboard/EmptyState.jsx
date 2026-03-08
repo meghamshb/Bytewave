@@ -1,4 +1,4 @@
-import EmptyIllustration from '../EmptyIllustration'
+import EmptyIllustration from '../common/EmptyIllustration'
 import { IcoArrow } from './icons'
 
 export default function EmptyState({ message, cta, onCta }) {

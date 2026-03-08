@@ -10,11 +10,11 @@
 
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import ScrollReveal from '../components/ScrollReveal'
-import LiveDemo from '../components/LiveDemo'
-import TeamSection from '../components/TeamSection'
+import ScrollReveal from '../components/landing/ScrollReveal'
+import LiveDemo from '../components/landing/LiveDemo'
+import TeamSection from '../components/landing/TeamSection'
 
-import WaitlistSection from '../components/WaitlistSection'
+import WaitlistSection from '../components/landing/WaitlistSection'
 import { apiFetch } from '../utils/api'
 
 const S = {

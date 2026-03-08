@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import TopicIcon from '../TopicIcon'
+import TopicIcon from '../common/TopicIcon'
 import { IcoArrow } from './icons'
 
 export default function RowCard({ title, reason, topicId, tag, tagColor, onClick }) {

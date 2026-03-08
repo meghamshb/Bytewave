@@ -1,4 +1,4 @@
-import { useScrollAnimation } from '../hooks/useScrollAnimation'
+import { useScrollAnimation } from '../../hooks/useScrollAnimation'
 
 export default function ScrollReveal({ children, className = '', style = {} }) {
   const [ref, visible] = useScrollAnimation()

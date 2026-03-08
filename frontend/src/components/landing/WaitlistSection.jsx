@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { track, EVENTS } from '../hooks/useAnalytics'
-import { apiFetch } from '../utils/api'
+import { track, EVENTS } from '../../hooks/useAnalytics'
+import { apiFetch } from '../../utils/api'
 
 const SEED_COUNT = 247
 

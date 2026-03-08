@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import TopicIcon from '../TopicIcon'
+import TopicIcon from '../common/TopicIcon'
 import { matchColor } from './icons'
 
 export default function HeroRecommCard({ title, matchPercent, masteryScore, topicId, reason, onClick, attempts = 0 }) {

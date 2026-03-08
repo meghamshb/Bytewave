@@ -1,9 +1,9 @@
 import { useState, memo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useForum } from '../hooks/useForum'
-import { Avatar, timeAgo } from '../components/PostCard'
-import EmptyIllustration from '../components/EmptyIllustration'
-import AppNav from '../components/AppNav'
+import { Avatar, timeAgo } from '../components/common/PostCard'
+import EmptyIllustration from '../components/common/EmptyIllustration'
+import AppNav from '../components/nav/AppNav'
 
 const ArrowLeft = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

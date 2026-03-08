@@ -13,8 +13,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '../hooks/useAuth'
-import { track, EVENTS } from '../hooks/useAnalytics'
+import { useAuth } from '../../hooks/useAuth'
+import { track, EVENTS } from '../../hooks/useAnalytics'
 
 const ONBOARDED_KEY = (id) => `bw_onboarded_${id}`
 

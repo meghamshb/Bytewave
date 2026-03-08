@@ -10,11 +10,11 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import WaveMark from './WaveMark'
 
-const MarketingContent = lazy(() => import('../screens/LandingReveal'))
+const MarketingContent = lazy(() => import('../../screens/LandingReveal'))
 
 const preloadLearnChunks = () => {
-  import('../screens/Home').catch(() => {})
-  import('./LearnLayout').catch(() => {})
+  import('../../screens/Home').catch(() => {})
+  import('../learn/LearnLayout').catch(() => {})
 }
 
 export default function HeroDashboard({ onClose, skipAnimation = false }) {

@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import TopicIcon from './TopicIcon'
+import TopicIcon from '../common/TopicIcon'
 
 const styles = {
   card: {

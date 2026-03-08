@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import teamProfiles from '../data/teamProfiles'
+import teamProfiles from '../../data/teamProfiles'
 
 function LinkedInIcon() {
   return (

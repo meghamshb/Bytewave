@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { ButtonPrimary } from '../components/ButtonPrimary'
-import Skeleton from '../components/Skeleton'
-import { getTopicById } from '../physicsTopics'
+import { ButtonPrimary } from '../components/common/ButtonPrimary'
+import Skeleton from '../components/common/Skeleton'
+import { getTopicById } from '../data/physicsTopics'
 import { useUserId } from '../hooks/useAuth'
 import { apiFetch } from '../utils/api'
 

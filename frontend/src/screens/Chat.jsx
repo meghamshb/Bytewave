@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import AppNav from '../components/AppNav'
-import Skeleton from '../components/Skeleton'
+import AppNav from '../components/nav/AppNav'
+import Skeleton from '../components/common/Skeleton'
 
 export default function Chat() {
   const [iframeReady, setIframeReady] = useState(false)
