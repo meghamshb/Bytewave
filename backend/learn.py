@@ -1494,6 +1494,39 @@ def forum_upvote_post(post_id: str) -> int | None:
     return new_count
 
 
+def forum_edit_post(post_id: str, title: str, body: str) -> bool:
+    """Update title and body of an existing post. Returns True if found."""
+    with _db() as conn:
+        cur = conn.execute(
+            "UPDATE forum_posts SET title = ?, body = ? WHERE id = ?",
+            (title, body, post_id),
+        )
+    return cur.rowcount > 0
+
+
+def forum_delete_post(post_id: str) -> None:
+    """Delete a post and all its replies."""
+    with _db() as conn:
+        conn.execute("DELETE FROM forum_replies WHERE post_id = ?", (post_id,))
+        conn.execute("DELETE FROM forum_posts WHERE id = ?", (post_id,))
+
+
+def forum_edit_reply(reply_id: str, body: str) -> bool:
+    """Update the body of an existing reply. Returns True if found."""
+    with _db() as conn:
+        cur = conn.execute(
+            "UPDATE forum_replies SET body = ? WHERE id = ?",
+            (body, reply_id),
+        )
+    return cur.rowcount > 0
+
+
+def forum_delete_reply(reply_id: str) -> None:
+    """Delete a single reply."""
+    with _db() as conn:
+        conn.execute("DELETE FROM forum_replies WHERE id = ?", (reply_id,))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ── Waitlist persistence ─────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────

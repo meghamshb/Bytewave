@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="welcome-screen" id="welcome-screen">
                 <div class="welcome-icon"></div>
                 <h2>What do you want to learn?</h2>
-                <p>Ask any physics question — get a live interactive simulation <em>and</em> a beautiful video explanation.</p>
+                <p>Ask any physics question — get a beautiful animated video explanation powered by AI.</p>
                 <div class="suggestion-chips">
                     <button class="chip" data-q="How does a pendulum work? Show me the forces involved.">Pendulum forces</button>
                     <button class="chip" data-q="Show me projectile motion with velocity components.">Projectile motion</button>
@@ -300,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 : buildPhysicsReply(plan);
             appendAssistantWithVideo(replyText, videoUrl, question);
             addToHistory(question, renderResult.video_url);
-            openVideoWindow(videoUrl, question);
             conversationHistory = [];
 
         } catch (err) {
@@ -423,7 +422,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const reply = 'Here\'s the updated animation:';
                     appendAssistantWithVideo(reply, videoUrl, message);
                     addToHistory(message, renderResult.video_url);
-                    openVideoWindow(videoUrl, message);
                     conversationHistory.push({ role: 'assistant', content: reply });
                     return;
                 }
@@ -460,7 +458,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const videoUrl = buildVideoUrl(data.video_url);
                 appendAssistantWithVideo(reply, videoUrl, message);
                 addToHistory(message, data.video_url);
-                openVideoWindow(videoUrl, message);
                 conversationHistory.push({ role: 'assistant', content: reply });
             } else {
                 const reply = data.reply || 'I couldn\'t generate a response.';
@@ -510,6 +507,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ── Math rendering ────────────────────────────────────────────────────────
+
+    function renderMath(el) {
+        if (typeof katex === 'undefined') return;
+        const html = el.innerHTML;
+        // Render display math: $$...$$ 
+        let out = html.replace(/\$\$([\s\S]*?)\$\$/g, (_, tex) => {
+            try {
+                return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false });
+            } catch { return _; }
+        });
+        // Render inline math: $...$  (but not $$)
+        out = out.replace(/\$([^\$\n]+?)\$/g, (_, tex) => {
+            try {
+                return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false });
+            } catch { return _; }
+        });
+        el.innerHTML = out;
+    }
+
+    function renderMarkdownWithMath(text) {
+        let html = text;
+        if (typeof marked !== 'undefined' && marked.parse) {
+            html = marked.parse(text);
+        }
+        // Create temp container to render math
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        renderMath(tmp);
+        return tmp.innerHTML;
+    }
+
     // ── DOM Helpers ───────────────────────────────────────────────────────────
 
     function appendMessage(role, text) {
@@ -523,8 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const bubble = document.createElement('div');
         bubble.className = 'msg-bubble';
 
-        if (role === 'assistant' && typeof marked !== 'undefined' && marked.parse) {
-            bubble.innerHTML = marked.parse(text);
+        if (role === 'assistant') {
+            bubble.innerHTML = renderMarkdownWithMath(text);
         } else {
             bubble.textContent = text;
         }
@@ -535,9 +564,6 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollToBottom();
         return wrapper;
     }
-
-    // ── Simulator panel counter (unique IDs) ─────────────────────────────────
-    let _simCounter = 0;
 
     // ── Open each animation in its own dedicated browser window ─────────────
     function openVideoWindow(videoUrl, question) {
@@ -612,86 +638,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const label = document.createElement('div');
         label.className = 'msg-label';
-        label.textContent = 'PhysiMate';
+        label.innerHTML = '<span class="ai-badge">AI</span> PhysiMate';
 
         const bubble = document.createElement('div');
         bubble.className = 'msg-bubble';
-        if (typeof marked !== 'undefined' && marked.parse) {
-            bubble.innerHTML = marked.parse(text);
-        } else {
-            bubble.textContent = text;
-        }
+        bubble.innerHTML = renderMarkdownWithMath(text);
 
-        // ── Tabbed simulator panel ──────────────────────────────────────────
-        const simId = 'sim-' + (++_simCounter);
-        const panel = document.createElement('div');
-        panel.className = 'sim-panel';
+        // Collapsible video section
+        const videoSection = document.createElement('details');
+        videoSection.className = 'video-section';
+        videoSection.open = true;
 
-        // Tab bar
-        const tabBar = document.createElement('div');
-        tabBar.className = 'sim-tab-bar';
-        tabBar.innerHTML = `
-            <button class="sim-tab-btn active" data-tab="interactive" data-sim="${simId}">⚡ Interactive</button>
-            <button class="sim-tab-btn" data-tab="video" data-sim="${simId}">🎬 Video</button>`;
-        panel.appendChild(tabBar);
+        const summary = document.createElement('summary');
+        summary.className = 'video-section-header';
+        summary.innerHTML = '▶ <strong>GENERATED ANIMATION</strong>';
+        videoSection.appendChild(summary);
 
-        // ── Interactive pane ─────────────────────────────────────────────────
-        const interactivePane = document.createElement('div');
-        interactivePane.className = 'sim-pane';
-        interactivePane.id = 'pane-interactive-' + simId;
-
-        // Canvas area (Matter.js injects canvas here)
-        const canvasArea = document.createElement('div');
-        canvasArea.className = 'sim-canvas-area';
-        canvasArea.id = 'sim-canvas-' + simId;
-
-        // Loading state
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'sim-loading';
-        loadingDiv.id = 'sim-loading-' + simId;
-        loadingDiv.innerHTML = `<div class="sim-loading-spinner"></div> <span>Loading interactive simulation…</span>`;
-        canvasArea.appendChild(loadingDiv);
-
-        interactivePane.appendChild(canvasArea);
-
-        // Controls bar
-        const ctrlBar = document.createElement('div');
-        ctrlBar.className = 'sim-ctrl-bar';
-        ctrlBar.id = 'sim-ctrls-' + simId;
-        ctrlBar.innerHTML = `
-            <button class="sim-ctrl-btn" title="Play" onclick="window._simCtrl('${simId}','play')">▶</button>
-            <button class="sim-ctrl-btn" title="Pause" onclick="window._simCtrl('${simId}','pause')">⏸</button>
-            <button class="sim-ctrl-btn" title="Reset" onclick="window._simCtrl('${simId}','reset')">↺ Reset</button>
-            <div class="sim-speed-label">
-                Speed:
-                <select class="sim-speed-select" onchange="window._simCtrl('${simId}','speed',this.value)">
-                    <option value="0.5">0.5×</option>
-                    <option value="1" selected>1×</option>
-                    <option value="2">2×</option>
-                    <option value="3">3×</option>
-                </select>
-            </div>`;
-        interactivePane.appendChild(ctrlBar);
-
-        // Slider panel (filled after scene loads)
-        const slidersDiv = document.createElement('div');
-        slidersDiv.className = 'sim-sliders';
-        slidersDiv.id = 'sim-sliders-' + simId;
-        interactivePane.appendChild(slidersDiv);
-
-        panel.appendChild(interactivePane);
-
-        // ── Video pane ───────────────────────────────────────────────────────
-        const videoPane = document.createElement('div');
-        videoPane.className = 'sim-pane hidden';
-        videoPane.id = 'pane-video-' + simId;
+        const videoPanel = document.createElement('div');
+        videoPanel.className = 'video-panel';
 
         const videoWrap = document.createElement('div');
-        videoWrap.className = 'sim-video-wrap';
-
+        videoWrap.className = 'video-wrap';
         const video = document.createElement('video');
         video.controls = true;
-        video.autoplay = false;
+        video.autoplay = true;
         video.loop = true;
         video.playsInline = true;
         const source = document.createElement('source');
@@ -700,177 +670,31 @@ document.addEventListener('DOMContentLoaded', () => {
         video.appendChild(source);
         videoWrap.appendChild(video);
 
-        // Download button
         const videoFooter = document.createElement('div');
-        videoFooter.className = 'sim-video-footer';
+        videoFooter.className = 'video-footer';
         const dlBtn = document.createElement('a');
         dlBtn.className = 'download-btn';
         dlBtn.href = videoUrl;
         dlBtn.download = `physiMate-${Date.now()}.mp4`;
         dlBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download MP4`;
         videoFooter.appendChild(dlBtn);
-        videoPane.appendChild(videoWrap);
-        videoPane.appendChild(videoFooter);
-        panel.appendChild(videoPane);
+
+        const popoutBtn = document.createElement('button');
+        popoutBtn.className = 'popout-btn';
+        popoutBtn.textContent = '⛶ Open in window';
+        popoutBtn.addEventListener('click', () => openVideoWindow(videoUrl, question));
+        videoFooter.appendChild(popoutBtn);
+
+        videoPanel.appendChild(videoWrap);
+        videoPanel.appendChild(videoFooter);
+        videoSection.appendChild(videoPanel);
 
         wrapper.appendChild(label);
         wrapper.appendChild(bubble);
-        wrapper.appendChild(panel);
+        wrapper.appendChild(videoSection);
         chatMessages.appendChild(wrapper);
         scrollToBottom();
-
-        // Tab switching logic
-        tabBar.addEventListener('click', e => {
-            const btn = e.target.closest('.sim-tab-btn');
-            if (!btn) return;
-            const tab = btn.dataset.tab;
-            tabBar.querySelectorAll('.sim-tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('pane-interactive-' + simId).classList.toggle('hidden', tab !== 'interactive');
-            document.getElementById('pane-video-' + simId).classList.toggle('hidden', tab !== 'video');
-            if (tab === 'video') video.play().catch(() => {});
-        });
-
-        // Async: fetch scene config + boot simulator
-        if (question) {
-            _fetchAndBootSimulator(simId, question);
-        }
     }
-
-    /** Fetch /api/simulate and initialise Matter.js scene. */
-    async function _fetchAndBootSimulator(simId, question) {
-        const canvasArea = document.getElementById('sim-canvas-' + simId);
-        const slidersDiv = document.getElementById('sim-sliders-' + simId);
-
-        // Helper: show an error/note in the canvas area regardless of
-        // whether the loading spinner has already been removed.
-        function showSimError(msg) {
-            const spinner = document.getElementById('sim-loading-' + simId);
-            if (spinner) {
-                spinner.innerHTML = `<span style="color:#6b7280;font-size:0.8rem;">${escapeHtml(msg)}</span>`;
-            } else if (canvasArea) {
-                const note = document.createElement('div');
-                note.className = 'sim-unsupported';
-                note.textContent = msg;
-                canvasArea.appendChild(note);
-            }
-        }
-
-        function removeSpinner() {
-            const spinner = document.getElementById('sim-loading-' + simId);
-            if (spinner) spinner.remove();
-        }
-
-        try {
-            // Guard: Matter.js must be available
-            if (typeof Matter === 'undefined') {
-                showSimError('Physics engine (Matter.js) failed to load.');
-                return;
-            }
-
-            // 15-second timeout — interactive classification may use the LLM (Anthropic)
-            const fetchCtrl = new AbortController();
-            const fetchTimeout = setTimeout(() => fetchCtrl.abort(), 15000);
-
-            let resp;
-            try {
-                resp = await fetch(`${API_BASE}/simulate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question }),
-                    signal: fetchCtrl.signal,
-                });
-            } finally {
-                clearTimeout(fetchTimeout);
-            }
-
-            if (!resp.ok) throw new Error('Server returned ' + resp.status);
-            const scene = await resp.json();
-
-            if (!canvasArea) return; // panel was removed from DOM
-
-            if (!scene || !scene.supported) {
-                removeSpinner();
-                const note = document.createElement('div');
-                note.className = 'sim-unsupported';
-                note.textContent = scene?.message || 'Interactive simulation not available for this topic.';
-                canvasArea.appendChild(note);
-                return;
-            }
-
-            // Spinner removed here — only after we know the scene is valid
-            removeSpinner();
-
-            // Boot simulator in its own try so errors don't leave a blank panel
-            try {
-                const sim = new PhysicsSimulator('sim-canvas-' + simId, scene);
-                window._simulators[simId] = sim;
-                _buildSliders(slidersDiv, simId, scene.params || []);
-            } catch (bootErr) {
-                console.error('Simulator boot error:', bootErr);
-                showSimError('Simulation failed to start — watch the video tab instead.');
-            }
-
-        } catch (err) {
-            const msg = err.name === 'AbortError'
-                ? 'Simulation timed out — watch the video tab instead.'
-                : 'Interactive simulation unavailable.';
-            showSimError(msg);
-        }
-    }
-
-    /** Build a slider for each scene parameter. */
-    function _buildSliders(container, simId, params) {
-        container.innerHTML = '';
-        if (!params.length) return;
-
-        params.forEach(p => {
-            const row = document.createElement('div');
-            row.className = 'sim-slider-row';
-
-            const lbl = document.createElement('label');
-            lbl.className = 'sim-slider-label';
-            lbl.textContent = p.unit ? `${p.label} (${p.unit})` : p.label;
-            lbl.htmlFor = `slider-${simId}-${p.id}`;
-
-            const input = document.createElement('input');
-            input.type = 'range';
-            input.className = 'sim-slider-input';
-            input.id = `slider-${simId}-${p.id}`;
-            input.min  = p.min;
-            input.max  = p.max;
-            input.step = p.step;
-            input.value = p.value;
-
-            const valDisplay = document.createElement('span');
-            valDisplay.className = 'sim-slider-value';
-            valDisplay.textContent = p.value;
-
-            input.addEventListener('input', () => {
-                const v = parseFloat(input.value);
-                valDisplay.textContent = v;
-                const sim = window._simulators[simId];
-                if (sim) sim.updateParam(p.id, v);
-            });
-
-            row.appendChild(lbl);
-            row.appendChild(input);
-            row.appendChild(valDisplay);
-            container.appendChild(row);
-        });
-    }
-
-    /** Global handler called by inline onclick in control bar. */
-    window._simCtrl = function(simId, action, value) {
-        const sim = window._simulators[simId];
-        if (!sim) return;
-        switch (action) {
-            case 'play':  sim.play();  break;
-            case 'pause': sim.pause(); break;
-            case 'reset': sim.reset(); break;
-            case 'speed': sim.setSpeed(value); break;
-        }
-    };
 
     function appendLoading(text) {
         const wrapper = document.createElement('div');
@@ -968,8 +792,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildPhysicsReply(plan) {
         if (!plan) return 'Here\'s your animation:';
-        const lines = plan.split('\n').filter(l => l.trim());
-        if (lines.length <= 3) return plan + '\n\nHere\'s the animation:';
-        return plan + '\n\n**Here\'s the animation:**';
+
+        const lines = plan.split('\n');
+        const explanationLines = [];
+        for (const line of lines) {
+            const trimmed = line.trim();
+            // Stop at "Animation Steps" heading (any markdown heading level or plain)
+            if (/^#{1,3}\s*(animation|implementation|steps|manim)/i.test(trimmed)) break;
+            if (/^(animation|implementation)\s*steps\s*:?$/i.test(trimmed)) break;
+            // Stop at numbered steps referencing Manim internals
+            if (/^\d+[\.\)]\s*/.test(trimmed) && /(MathTex|Arrow\b|Rectangle|NumberLine|VGroup|ValueTracker|always_redraw|self\.|\.animate|solve_ivp|pymunk|TracedPath)/i.test(trimmed)) break;
+            explanationLines.push(line);
+        }
+
+        let explanation = explanationLines.join('\n').trim();
+
+        // Clean up artifacts: remove "Physics:" prefix, "Set parameters:" technical lines
+        explanation = explanation.replace(/^Physics:\s*/i, '');
+        explanation = explanation.replace(/^Set parameters:.*$/gm, '').trim();
+        // Remove lines that are purely technical variable assignments
+        explanation = explanation.replace(/^[a-z_]+ *= *[\d.]+.*$/gm, '').trim();
+        // Collapse multiple blank lines into one
+        explanation = explanation.replace(/\n{3,}/g, '\n\n');
+
+        if (!explanation) return 'Here\'s your animation:';
+        return explanation + '\n\n---\n**Here\'s the animation:**';
     }
 });

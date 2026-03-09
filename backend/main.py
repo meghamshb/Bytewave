@@ -8,7 +8,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File as FastAPIFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
@@ -25,7 +25,6 @@ from backend.agent import (
     sanitize_question,
     match_template,
     _extract_numeric_params,
-    generate_matter_scene,
 )
 from backend.manim_runner import run_manim_script, ManimExecutionError
 import backend.learn as _learn
@@ -125,7 +124,7 @@ async def cache_control(request: Request, call_next):
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     _exempt_prefixes = (
-        "/api/job/", "/api/simulate", "/api/learn/",
+        "/api/job/", "/api/learn/",
         "/api/progress/", "/api/recommendations/", "/api/cases/",
         "/api/waitlist/",
     )
@@ -237,6 +236,31 @@ app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 _CLIPS_STATIC_DIR = ROOT_DIR / "media_output" / "clips"
 _CLIPS_STATIC_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/videos/clips", StaticFiles(directory=str(_CLIPS_STATIC_DIR)), name="clips")
+
+# User-uploaded forum attachments
+_UPLOADS_DIR = ROOT_DIR / "media_output" / "uploads"
+_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(_UPLOADS_DIR)), name="uploads")
+
+_ALLOWED_UPLOAD_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".mov"}
+_MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+@app.post("/api/upload")
+async def upload_file(file: UploadFile = FastAPIFile(...)):
+    """Upload an image or video. Returns the public URL."""
+    import uuid as _uuid
+    ext = Path(file.filename or "file").suffix.lower()
+    if ext not in _ALLOWED_UPLOAD_EXT:
+        raise HTTPException(400, f"File type {ext} not allowed. Use: {', '.join(_ALLOWED_UPLOAD_EXT)}")
+    data = await file.read()
+    if len(data) > _MAX_UPLOAD_SIZE:
+        raise HTTPException(400, "File too large (max 50 MB)")
+    name = f"{_uuid.uuid4().hex[:12]}{ext}"
+    dest = _UPLOADS_DIR / name
+    dest.write_bytes(data)
+    logger.info("Upload: %s (%d KB)", name, len(data) // 1024)
+    return {"url": f"/uploads/{name}", "filename": file.filename, "size": len(data)}
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -506,25 +530,6 @@ async def generate_plan_and_code_endpoint(request: QuestionRequest):
     except Exception as e:
         logger.error("generate_plan_and_code failed: %s", e)
         raise HTTPException(status_code=500, detail=_truncate_detail(e))
-
-
-@app.post("/api/simulate")
-async def get_simulation_scene(request: QuestionRequest):
-    """
-    Return a Matter.js interactive scene config for the given physics question.
-    Uses keyword matching first; falls back to Claude (Anthropic) classification
-    so the interactive is always in sync with the Manim video.
-    Runs in a thread-pool so the LLM call never blocks the async event loop.
-    """
-    import asyncio
-    logger.info("simulate: %s", request.question[:80])
-    try:
-        params = _extract_numeric_params(request.question)
-        scene = await asyncio.to_thread(generate_matter_scene, request.question, params)
-        return scene
-    except Exception as e:
-        logger.error("simulate scene generation failed: %s", e)
-        return {"supported": False, "domain": "error", "message": str(e)}
 
 
 @app.post("/api/generate_plan")
@@ -1433,6 +1438,51 @@ async def upvote_post(post_id: str, req: UpvoteRequest):
     if new_count is None:
         return {"ok": True}
     return {"ok": True, "upvotes": new_count}
+
+
+class ForumEditRequest(BaseModel):
+    title: str = Field(..., max_length=300)
+    body: str = Field(..., max_length=20_000)
+
+
+@app.put("/api/forum/posts/{post_id}")
+async def edit_forum_post(post_id: str, req: ForumEditRequest):
+    """Update title and body of an existing post."""
+    updated = _learn.forum_edit_post(post_id, req.title, req.body)
+    if not updated:
+        return {"ok": False, "note": "post not found"}
+    logger.info("Forum: edited post %s", post_id)
+    return {"ok": True}
+
+
+@app.delete("/api/forum/posts/{post_id}")
+async def delete_forum_post(post_id: str):
+    """Delete a forum post and its replies."""
+    _learn.forum_delete_post(post_id)
+    logger.info("Forum: deleted post %s", post_id)
+    return {"ok": True}
+
+
+class ReplyEditRequest(BaseModel):
+    body: str = Field(..., max_length=5_000)
+
+
+@app.put("/api/forum/posts/{post_id}/replies/{reply_id}")
+async def edit_reply(post_id: str, reply_id: str, req: ReplyEditRequest):
+    """Update the body of an existing reply."""
+    updated = _learn.forum_edit_reply(reply_id, req.body)
+    if not updated:
+        return {"ok": False, "note": "reply not found"}
+    logger.info("Forum: edited reply %s on post %s", reply_id, post_id)
+    return {"ok": True}
+
+
+@app.delete("/api/forum/posts/{post_id}/replies/{reply_id}")
+async def delete_reply(post_id: str, reply_id: str):
+    """Delete a single reply."""
+    _learn.forum_delete_reply(reply_id)
+    logger.info("Forum: deleted reply %s from post %s", reply_id, post_id)
+    return {"ok": True}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

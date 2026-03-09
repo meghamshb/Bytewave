@@ -26,16 +26,33 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const token = getToken()
+    const cached = (() => {
+      try { return JSON.parse(localStorage.getItem(SESSION_KEY)) } catch { return null }
+    })()
+
     if (!token) {
       saveSession(null)
       setUser(null)
       setLoading(false)
       return
     }
+
     apiFetch('/api/auth/me')
-      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(r => {
+        if (!r.ok) throw new Error(`${r.status}`)
+        return r.json()
+      })
       .then(data => { setUser(data.user); saveSession(data.user) })
-      .catch(() => { clearToken(); saveSession(null); setUser(null) })
+      .catch((err) => {
+        const status = parseInt(err.message, 10)
+        if (status === 401) {
+          clearToken(); saveSession(null); setUser(null)
+        } else if (cached) {
+          setUser(cached)
+        } else {
+          clearToken(); saveSession(null); setUser(null)
+        }
+      })
       .finally(() => setLoading(false))
   }, [])
 

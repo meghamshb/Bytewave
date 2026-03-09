@@ -43,7 +43,7 @@ def _db():
 # ── JWT configuration ────────────────────────────────────────────────────────
 _JWT_SECRET = os.environ.get("JWT_SECRET", "")
 _JWT_ALGORITHM = "HS256"
-_JWT_EXPIRY_SECONDS = 7 * 24 * 3600  # 7 days
+_JWT_EXPIRY_SECONDS = 30 * 24 * 3600  # 30 days
 
 if not _JWT_SECRET:
     _JWT_SECRET = secrets.token_hex(32)

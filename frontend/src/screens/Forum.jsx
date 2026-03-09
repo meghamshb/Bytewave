@@ -1,5 +1,7 @@
-import { useState, useMemo, useEffect, memo } from 'react'
+import { useState, useMemo, useEffect, useRef, memo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useForum } from '../hooks/useForum'
+import { useAuth } from '../hooks/useAuth'
 import PostCard from '../components/common/PostCard'
 import Skeleton from '../components/common/Skeleton'
 import EmptyIllustration from '../components/common/EmptyIllustration'
@@ -91,11 +93,60 @@ function generateTags(title, body) {
   return fallbackTags(title + ' ' + body)
 }
 
+// ─── Attachment helpers ───────────────────────────────────────────────────────
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime'
+const isVideo = (url) => /\.(mp4|webm|mov)$/i.test(url)
+
+async function uploadFile(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch('/api/upload', { method: 'POST', body: form })
+  if (!res.ok) throw new Error('Upload failed')
+  return res.json()
+}
+
+const PaperclipIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+  </svg>
+)
+
 // ─── New-post modal ───────────────────────────────────────────────────────────
 const NewPostModal = memo(function NewPostModal({ onClose, onSubmit, tagging }) {
-  const [title, setTitle] = useState('')
-  const [body, setBody]   = useState('')
-  const canSubmit = title.trim().length > 8 && body.trim().length > 10 && !tagging
+  const [title, setTitle]         = useState('')
+  const [body, setBody]           = useState('')
+  const [files, setFiles]         = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadErr, setUploadErr] = useState('')
+  const fileRef = useRef(null)
+
+  const canSubmit = title.trim().length >= 3 && body.trim().length >= 5 && !tagging && !uploading
+
+  const handleFiles = async (e) => {
+    const selected = Array.from(e.target.files || [])
+    if (selected.length === 0) return
+    if (files.length + selected.length > 3) { setUploadErr('Max 3 attachments'); return }
+    setUploadErr('')
+    setUploading(true)
+    try {
+      const results = await Promise.all(selected.map(f => uploadFile(f)))
+      setFiles(prev => [...prev, ...results.map(r => ({ url: r.url, name: r.filename, size: r.size }))])
+    } catch {
+      setUploadErr('Upload failed — try a smaller file (max 50 MB)')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const removeFile = (idx) => setFiles(prev => prev.filter((_, i) => i !== idx))
+
+  const handleSubmit = () => {
+    if (!canSubmit) return
+    const videoUrl = files.find(f => isVideo(f.url))?.url || null
+    const imageUrls = files.filter(f => !isVideo(f.url)).map(f => f.url)
+    onSubmit(title.trim(), body.trim(), videoUrl, imageUrls)
+  }
 
   return (
     <div
@@ -123,16 +174,62 @@ const NewPostModal = memo(function NewPostModal({ onClose, onSubmit, tagging }) 
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary-text-muted)' }}>Details</label>
-          <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Explain what you understand so far and what's confusing you..." rows={5}
+          <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Explain what you understand so far and what's confusing you..." rows={4}
             style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--primary-text)', fontSize: 14, fontFamily: 'var(--font-body)', resize: 'vertical', lineHeight: 1.6, outline: 'none' }}
           />
+        </div>
+
+        {/* Attachments */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--primary-text-muted)' }}>
+            Attachments <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional — images or videos, max 3)</span>
+          </label>
+
+          <input ref={fileRef} type="file" accept={ACCEPTED_TYPES} multiple onChange={handleFiles}
+            style={{ display: 'none' }} />
+
+          {files.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {files.map((f, i) => (
+                <div key={i} style={{
+                  position: 'relative', borderRadius: 10, overflow: 'hidden',
+                  border: '1px solid var(--border-medium)', background: '#000',
+                  width: 80, height: 60, flexShrink: 0,
+                }}>
+                  {isVideo(f.url)
+                    ? <video src={f.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                    : <img src={f.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  }
+                  <button type="button" onClick={() => removeFile(i)} style={{
+                    position: 'absolute', top: 2, right: 2,
+                    background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff',
+                    width: 18, height: 18, borderRadius: '50%', fontSize: 11,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading || files.length >= 3}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '9px 16px', borderRadius: 10, alignSelf: 'flex-start',
+              background: 'var(--bg-card)', border: '1px dashed var(--border-medium)',
+              color: 'var(--primary-text-muted)', fontSize: 13, fontWeight: 600,
+              cursor: uploading || files.length >= 3 ? 'not-allowed' : 'pointer',
+              opacity: uploading || files.length >= 3 ? 0.5 : 1,
+            }}>
+            {uploading ? <><SpinnerIcon /> Uploading…</> : <><PaperclipIcon /> Attach file</>}
+          </button>
+          {uploadErr && <span style={{ fontSize: 12, color: '#ef4444' }}>{uploadErr}</span>}
         </div>
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button type="button" onClick={onClose} style={{ flex: 1, padding: '13px 0', borderRadius: 12, background: 'var(--bg-card)', color: 'var(--primary-text-muted)', border: '1px solid var(--border-light)', fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
-          <button type="button" onClick={() => canSubmit && onSubmit(title.trim(), body.trim())} disabled={!canSubmit}
+          <button type="button" onClick={handleSubmit} disabled={!canSubmit}
             style={{ flex: 2, padding: '13px 0', borderRadius: 12, background: canSubmit ? 'var(--gradient-accent)' : 'var(--bg-card)', color: canSubmit ? '#fff' : 'var(--primary-text-muted)', border: '1px solid var(--border-light)', fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600, cursor: canSubmit ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: canSubmit ? '0 4px 14px rgba(99,102,241,0.4)' : 'none' }}>
             {tagging ? <><SpinnerIcon /> AI tagging…</> : 'Post question →'}
           </button>
@@ -150,10 +247,14 @@ function collectTags(posts) {
 }
 
 export default function Forum() {
-  // Single useForum() call — all state from the same context instance
-  const { posts, loading, upvotePost, hasUpvoted, addPost } = useForum()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const { posts, loading, upvotePost, hasUpvoted, addPost, deletePost } = useForum()
+  const displayName = user?.name || user?.email || 'Anonymous'
+  const isGuest = !user || user.is_guest
 
   const [showModal, setShowModal] = useState(false)
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false)
   const [activeTag, setActiveTag] = useState(null)
   const [rawSearch, setRawSearch] = useState('')
   const [sort, setSort]           = useState('newest')
@@ -186,12 +287,13 @@ export default function Forum() {
     }
     if (sort === 'discussed') return [...result].sort((a, b) => (b.replies?.length ?? 0) - (a.replies?.length ?? 0))
     if (sort === 'top')       return [...result].sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0))
-    return result
+    return [...result].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
   }, [posts, activeTag, search, sort])
 
-  const handleSubmitSafe = (title, body) => {
+  const handleSubmitSafe = (title, body, videoUrl = null, imageUrls = []) => {
     const tags = generateTags(title, body)
-    addPost(title, body, tags)
+    const author = user?.name || user?.email || 'Anonymous'
+    addPost(title, body, tags, author, videoUrl, null, imageUrls)
     setShowModal(false)
   }
 
@@ -213,7 +315,7 @@ export default function Forum() {
                 Ask, discuss, and learn together. Every post is AI-tagged and linked to the chatbot.
               </p>
             </div>
-            <button type="button" onClick={() => setShowModal(true)} style={S.newBtn}>
+            <button type="button" onClick={() => isGuest ? setShowSignInPrompt(true) : setShowModal(true)} style={S.newBtn}>
               <PlusIcon /> New post
             </button>
           </div>
@@ -322,6 +424,8 @@ export default function Forum() {
                   post={post}
                   onUpvote={upvotePost}
                   didUpvote={hasUpvoted(post.id)}
+                  isOwner={displayName === post.author}
+                  onDelete={deletePost}
                 />
               ))}
             </div>
@@ -353,6 +457,49 @@ export default function Forum() {
           onSubmit={handleSubmitSafe}
           tagging={false}
         />
+      )}
+
+      {showSignInPrompt && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowSignInPrompt(false) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+          }}
+        >
+          <div style={{
+            background: 'var(--primary-bg)', border: '1px solid var(--border-medium)',
+            borderRadius: 20, padding: '36px 32px', width: '100%', maxWidth: 400,
+            textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 16,
+            boxShadow: '0 24px 80px rgba(0,0,0,0.45)',
+          }}>
+            <div style={{ fontSize: 36 }}>🔒</div>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 700, color: 'var(--primary-text)' }}>
+              Sign in to post
+            </h2>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--primary-text-muted)', lineHeight: 1.6 }}>
+              Create an account to ask questions, share explanations, and join the discussion.
+            </p>
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button type="button" onClick={() => setShowSignInPrompt(false)} style={{
+                flex: 1, padding: '12px 0', borderRadius: 12,
+                background: 'var(--bg-card)', border: '1px solid var(--border-light)',
+                color: 'var(--primary-text-muted)', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+              }}>
+                Cancel
+              </button>
+              <button type="button" onClick={() => navigate('/auth')} style={{
+                flex: 2, padding: '12px 0', borderRadius: 12,
+                background: 'var(--gradient-accent)', border: 'none',
+                color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+              }}>
+                Sign in →
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}::-webkit-scrollbar{display:none}`}</style>

@@ -30,6 +30,8 @@ export default function HeroDashboard({ onClose, skipAnimation = false }) {
   return (
     <motion.div
       ref={scrollRef}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
       initial={skipAnimation ? { y: 0, opacity: 1 } : { y: '100vh', opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: '100vh', opacity: 0 }}

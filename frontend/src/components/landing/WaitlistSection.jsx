@@ -24,15 +24,22 @@ function saveLocally(email) {
   } catch { return 0 }
 }
 
+function getSavedEmail() {
+  try {
+    const list = JSON.parse(localStorage.getItem('bw_waitlist') || '[]')
+    return list.length > 0 ? list[list.length - 1] : ''
+  } catch { return '' }
+}
+
 export default function WaitlistSection() {
-  const [email,     setEmail]     = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const savedEmail = getSavedEmail()
+  const [email,     setEmail]     = useState(savedEmail)
+  const [submitted, setSubmitted] = useState(!!savedEmail)
   const [loading,   setLoading]   = useState(false)
   const [count,     setCount]     = useState(SEED_COUNT)
   const [error,     setError]     = useState('')
 
   useEffect(() => {
-    // Try server for live count, fall back to localStorage
     apiFetch('/api/waitlist/count')
       .then(r => r.json())
       .then(d => { if (typeof d.count === 'number') setCount(d.count) })
@@ -81,30 +88,32 @@ export default function WaitlistSection() {
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
         padding: '5px 14px', borderRadius: 100,
-        background: 'rgba(99,102,241,0.1)',
-        border: '1px solid rgba(99,102,241,0.25)',
+        background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.08))',
+        border: '1px solid rgba(251,191,36,0.3)',
         marginBottom: 20,
       }}>
-        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#818cf8', display: 'inline-block', animation: 'pulse-dot 2s ease-in-out infinite' }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#818cf8', letterSpacing: '0.09em' }}>
-          {count} PEOPLE WAITING
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#fbbf24', display: 'inline-block', animation: 'pulse-dot 2s ease-in-out infinite' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', letterSpacing: '0.09em' }}>
+          {count} ON THE LIST
         </span>
       </div>
 
-      <h2 style={{ ...sectionTitle, fontSize: 32, margin: '0 0 12px' }}>Get early access</h2>
+      <h2 style={{ ...sectionTitle, fontSize: 32, margin: '0 0 12px' }}>
+        Byte Wave <span style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Premium</span>
+      </h2>
       <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--primary-text-muted)', margin: '0 0 32px' }}>
-        Be among the first to use Byte Wave when we open the doors. We'll email you the moment your spot is ready.
+        Unlimited AI feedback, priority animation rendering, and advanced mastery analytics. Drop your email to get early access when we launch.
       </p>
 
       {submitted ? (
-        <div style={{ padding: '24px', borderRadius: 16, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)' }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>🎉</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary-text)', marginBottom: 6 }}>You're on the list!</div>
+        <div style={{ padding: '24px', borderRadius: 16, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)' }}>
+          <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--primary-text)', marginBottom: 6 }}>You're in.</div>
           <div style={{ fontSize: 13, color: 'var(--primary-text-muted)' }}>
-            You're <strong style={{ color: '#22c55e' }}>#{count}</strong> in line. We'll email you at <strong>{email}</strong> when your spot opens.
+            You're <strong style={{ color: '#fbbf24' }}>#{count}</strong> on the Premium list. We'll reach out to <strong>{email}</strong> when it's ready.
           </div>
           <div style={{ marginTop: 16, fontSize: 12, color: 'var(--primary-text-muted)' }}>
-            Can't wait? <Link to="/learn" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600 }}>Try the app now →</Link>
+            In the meantime, <Link to="/auth" style={{ color: '#818cf8', textDecoration: 'none', fontWeight: 600 }}>try the free version →</Link>
           </div>
         </div>
       ) : (
@@ -130,18 +139,18 @@ export default function WaitlistSection() {
               disabled={loading}
               style={{
                 padding: '13px 28px', borderRadius: 10,
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                color: '#fff', fontSize: 14, fontWeight: 700,
+                background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                color: '#000', fontSize: 14, fontWeight: 700,
                 border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
+                boxShadow: '0 4px 16px rgba(245,158,11,0.35)',
                 whiteSpace: 'nowrap', opacity: loading ? 0.7 : 1,
               }}>
-              {loading ? 'Saving…' : 'Join waitlist →'}
+              {loading ? 'Saving…' : 'Get Premium access →'}
             </button>
           </div>
           {error && <div style={{ marginTop: 8, fontSize: 12, color: '#ef4444' }}>{error}</div>}
           <div style={{ marginTop: 12, fontSize: 12, color: 'var(--primary-text-muted)' }}>
-            No spam. One email when your spot opens. Unsubscribe any time.
+            No spam. One email when Premium launches. Unsubscribe any time.
           </div>
         </>
       )}

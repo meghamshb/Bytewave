@@ -24,47 +24,49 @@ function BuilderCard({ profile }) {
         padding: '28px 24px 24px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 16,
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
+        gap: 14,
+        transform: hovered ? 'translateY(-5px)' : 'translateY(0)',
         boxShadow: hovered
-          ? `0 12px 40px ${accentColor}18, 0 0 0 1px ${accentColor}15`
+          ? `0 16px 48px ${accentColor}20, 0 0 0 1px ${accentColor}18`
           : '0 2px 12px rgba(0,0,0,0.06)',
-        transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
+        transition: 'transform 0.3s cubic-bezier(0.22,1,0.36,1), box-shadow 0.3s ease, border-color 0.3s ease',
         position: 'relative',
         overflow: 'hidden',
+        minHeight: 220,
       }}
     >
-      {/* Subtle top accent line */}
+      {/* Top accent line */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 3,
         background: `linear-gradient(90deg, ${accentColor}, ${accentColor}60)`,
-        opacity: hovered ? 1 : 0.4,
-        transition: 'opacity 0.25s ease',
+        opacity: hovered ? 1 : 0.35,
+        transition: 'opacity 0.3s ease',
       }} />
 
-      {/* Avatar + identity row */}
+      {/* Avatar + identity */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         {avatar ? (
           <img
             src={avatar}
             alt={name}
             style={{
-              width: 52, height: 52, borderRadius: '50%',
+              width: 50, height: 50, borderRadius: '50%',
               objectFit: 'cover',
-              border: `2px solid ${accentColor}40`,
-              boxShadow: hovered ? `0 0 16px ${accentColor}30` : 'none',
-              transition: 'box-shadow 0.25s ease',
+              border: `2px solid ${hovered ? accentColor : `${accentColor}40`}`,
+              boxShadow: hovered ? `0 0 18px ${accentColor}35` : 'none',
+              transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+              flexShrink: 0,
             }}
           />
         ) : (
           <div style={{
-            width: 52, height: 52, borderRadius: '50%',
+            width: 50, height: 50, borderRadius: '50%',
             background: `linear-gradient(135deg, ${accentColor}30, ${accentColor}10)`,
-            border: `2px solid ${accentColor}40`,
+            border: `2px solid ${hovered ? accentColor : `${accentColor}40`}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, fontWeight: 800, color: accentColor,
-            boxShadow: hovered ? `0 0 16px ${accentColor}30` : 'none',
-            transition: 'box-shadow 0.25s ease',
+            fontSize: 15, fontWeight: 800, color: accentColor,
+            boxShadow: hovered ? `0 0 18px ${accentColor}35` : 'none',
+            transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
             flexShrink: 0,
           }}>
             {initials}
@@ -83,7 +85,12 @@ function BuilderCard({ profile }) {
                 href={linkedinUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: '#0a66c2', display: 'flex', flexShrink: 0 }}
+                className="team-linkedin"
+                style={{
+                  color: '#0a66c2',
+                  display: 'flex', flexShrink: 0,
+                  transition: 'color 0.2s ease, transform 0.2s ease',
+                }}
                 onClick={e => e.stopPropagation()}
                 aria-label={`${name} on LinkedIn`}
               >
@@ -100,7 +107,7 @@ function BuilderCard({ profile }) {
         </div>
       </div>
 
-      {/* Contribution badge */}
+      {/* Contribution */}
       <div style={{
         fontSize: 11, fontWeight: 600,
         color: 'var(--primary-text-muted)',
@@ -113,13 +120,14 @@ function BuilderCard({ profile }) {
         {contribution}
       </div>
 
-      {/* Statement */}
+      {/* Statement — pinned to bottom */}
       <blockquote style={{
         margin: 0, padding: 0,
         fontSize: 13.5, lineHeight: 1.7,
         color: 'var(--primary-text)',
         fontStyle: 'italic',
-        flex: 1,
+        marginTop: 'auto',
+        opacity: 0.85,
       }}>
         "{statement}"
       </blockquote>
@@ -128,30 +136,45 @@ function BuilderCard({ profile }) {
 }
 
 export default function TeamSection() {
+  const topRow = teamProfiles.slice(0, 3)
+  const bottomRow = teamProfiles.slice(3)
+
   return (
     <section style={{
-      padding: '80px 24px',
+      padding: '88px 24px 96px',
       background: 'var(--bg-card)',
       borderTop: '1px solid var(--border-light)',
       borderBottom: '1px solid var(--border-light)',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      {/* Ambient glow */}
+      <div style={{
+        position: 'absolute', top: '40%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 700, height: 500, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 65%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ maxWidth: 980, margin: '0 auto', position: 'relative' }}>
         <div style={{
           fontSize: 10, fontWeight: 800,
           letterSpacing: '0.12em',
           color: 'var(--accent-main)',
           textTransform: 'uppercase',
           textAlign: 'center',
-          marginBottom: 12,
+          marginBottom: 10,
         }}>
           Built by students
         </div>
         <h2 style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 32, fontWeight: 700,
+          fontSize: 'clamp(26px, 4vw, 34px)', fontWeight: 700,
           textAlign: 'center',
           color: 'var(--primary-text)',
           margin: '0 0 8px',
+          letterSpacing: '-0.02em',
         }}>
           Meet the builders
         </h2>
@@ -159,27 +182,47 @@ export default function TeamSection() {
           textAlign: 'center',
           fontSize: 14,
           color: 'var(--primary-text-muted)',
-          margin: '0 0 48px',
-          fontStyle: 'italic',
-          fontFamily: 'var(--font-formula)',
+          margin: '0 auto 52px',
+          maxWidth: 440,
+          lineHeight: 1.6,
         }}>
-          Five friends who got tired of studying blind — so they built something better.
+          Five friends who got tired of studying blind, so they built something better.
         </p>
 
-        <div className="team-grid" style={{
+        {/* Row 1: 3 cards */}
+        <div className="team-row-top" style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 20,
+          marginBottom: 20,
         }}>
-          {teamProfiles.map(profile => (
-            <BuilderCard key={profile.name} profile={profile} />
-          ))}
+          {topRow.map(p => <BuilderCard key={p.name} profile={p} />)}
+        </div>
+
+        {/* Row 2: 2 cards, centered */}
+        <div className="team-row-bottom" style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 20,
+          maxWidth: 640,
+          margin: '0 auto',
+        }}>
+          {bottomRow.map(p => <BuilderCard key={p.name} profile={p} />)}
         </div>
       </div>
 
       <style>{`
-        @media (max-width: 640px) {
-          .team-grid { grid-template-columns: 1fr !important; }
+        .team-linkedin:hover {
+          color: #0a66c2 !important;
+          transform: scale(1.15);
+        }
+        @media (max-width: 860px) {
+          .team-row-top { grid-template-columns: repeat(2, 1fr) !important; }
+          .team-row-bottom { grid-template-columns: repeat(2, 1fr) !important; max-width: 100% !important; }
+        }
+        @media (max-width: 540px) {
+          .team-row-top { grid-template-columns: 1fr !important; }
+          .team-row-bottom { grid-template-columns: 1fr !important; max-width: 100% !important; }
         }
       `}</style>
     </section>

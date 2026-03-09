@@ -27,7 +27,7 @@ MAX_QUESTION_LENGTH = 4000
 MAX_PLAN_LENGTH = 8000
 
 # Keep the plan concise so it's better for visualization (fewer tokens, clearer for code gen)
-MAX_PLAN_WORDS = 350
+MAX_PLAN_WORDS = 600
 
 # We inject the LLM's output into this skeleton so structure is never wrong
 MANIM_SKELETON = '''from manim import *
@@ -207,15 +207,35 @@ def generate_animation_plan(question: str) -> str:
     prompt = f"""
 You are an expert physics educator and Manim animator. A user asked: "{question}"
 
-Give a SHORT, actionable plan for animating this in Manim (Python library).
+Give an actionable plan for animating this in Manim (Python library).
 
 Rules:
-- Keep your ENTIRE response under {MAX_PLAN_WORDS} words. Be concise.
-- One brief sentence on the physics, then a numbered list of 4–8 concrete animation steps.
+- Keep your ENTIRE response under {MAX_PLAN_WORDS} words.
+- Start with a PHYSICS EXPLANATION section (this will be shown to the user). Guidelines:
+  * For simple questions: 3-5 sentences covering the core concept and key equation.
+  * For detailed/multi-part questions: a thorough explanation with multiple paragraphs.
+    Use **bold** for key terms, include all relevant equations in LaTeX notation,
+    explain cause-and-effect relationships, and address EVERY part of what the user asked.
+    If the user asks "what happens if X", explain that scenario in detail.
+  * Write in clear, engaging language a student would understand.
+  * Use markdown formatting: **bold** for emphasis, line breaks between paragraphs.
+  * Include the relevant physics equations (e.g. F = ma, B = μ₀I/2πr).
+  * Do NOT mention Manim, code, animation objects, or implementation details.
+  * Match the depth of your explanation to the complexity of the question.
+- Then write "Animation Steps" on its own line, followed by a numbered list of 4–12
+  concrete animation steps (these are technical and will NOT be shown to the user).
 - IMPORTANT: Always include steps for drawing force vectors (Arrow), labeling forces
   (Text for words, MathTex for symbols), and showing relevant equations with MathTex
   (e.g. MathTex(r"F=ma"), MathTex(r"\\theta"), MathTex(r"\\frac{{mv^2}}{{r}}")).
   Physics animations must show ALL relevant forces and their components, not just the motion.
+- MULTI-PART / SCENARIO QUESTIONS: If the user asks for multiple scenarios, comparisons,
+  or "what if" situations (e.g. "show X and explain what happens without X"), you MUST
+  plan SEPARATE animation sections for each part:
+  * Section 1: Animate the first scenario (e.g. "Earth WITH magnetic field")
+  * Section 2: Transition text/animation (e.g. "What if we removed it?")
+  * Section 3: Animate the second scenario (e.g. "Earth WITHOUT magnetic field")
+  * Show visual contrast between scenarios with clear labels.
+  DO NOT skip or summarize any part of the user's request. Cover EVERY aspect they asked about.
 
 DOMAIN-SPECIFIC GUIDANCE:
 - Mechanics / pendulum / spring: include gravity, tension, normal, friction arrows.
@@ -247,10 +267,18 @@ DOMAIN-SPECIFIC GUIDANCE:
     content = _call_llm(
         messages=[
             {"role": "system", "content": (
-                "You give very concise, visualization-focused Manim animation plans. "
-                "Short sentences. Under 350 words total. "
-                "Always mention which library/tool to use for simulations "
-                "(scipy for ODE, pymunk for collisions, standard Manim for everything else)."
+                "You give Manim animation plans with two clear sections. "
+                "FIRST: A physics explanation for the student. For simple questions, 3-5 sentences. "
+                "For detailed or multi-part questions, write a thorough explanation with multiple paragraphs, "
+                "**bold** key terms, relevant equations, and cause-and-effect reasoning. "
+                "Match your explanation depth to the question's complexity. "
+                "Do NOT mention Manim, code objects, or implementation details in this section. "
+                "THEN: Write 'Animation Steps' as a heading, followed by numbered technical steps. "
+                "Under 500 words total. "
+                "Always mention which library/tool to use for simulations in the Animation Steps "
+                "(scipy for ODE, pymunk for collisions, standard Manim for everything else). "
+                "If the user's question has multiple parts or asks 'what if' / 'what happens without', "
+                "explain each scenario thoroughly and plan separate animation sections for each."
             )},
             {"role": "user", "content": prompt}
         ],
@@ -2105,7 +2133,15 @@ MOVING OBJECTS RULE — CRITICAL: When an object (block, ball, dot, etc.) moves 
   * self.add(f_arrow, f_label) before the animation, then self.play(block.animate.shift(...))
   * NEVER use always_redraw(lambda: MathTex(...)) for labels — it recompiles LaTeX every frame and is very slow.
   * NEVER create a static Arrow(block.get_right(), ...) when block will be moved — it will be left behind.
-  * Keep total animation time ≤ 10 seconds. Use run_time ≤ 1.8 for movement, self.wait(0.5) between steps.
+  * For simple single-concept questions: keep total animation time ≤ 12 seconds.
+  * For multi-part or comparison questions: you may use up to 25 seconds total. Use run_time ≤ 1.8 per movement, self.wait(0.5–1.0) between steps.
+
+MULTI-PART / SCENARIO QUESTIONS — CRITICAL:
+  If the plan describes multiple scenarios, comparisons, or "what if" situations, you MUST animate ALL of them:
+  * Use FadeOut to clear the first scenario, then build and animate the second.
+  * Add a transition title (e.g. Text("Without the magnetic field...")) between scenarios.
+  * Show clear visual differences between the scenarios (different colors, labels, outcomes).
+  * NEVER skip or abbreviate a scenario the user asked about. Cover every part of the question.
 
 FORCE DIAGRAM RULES:
   * Draw ONLY the forces that actually exist in the scenario (read the physics conditions above).
@@ -2257,7 +2293,7 @@ def generate_plan_and_code(question: str) -> tuple[str, str]:
     prompt = f"""Physics question: {question}
 {param_section}{few_shot}
 Output ONLY valid JSON (no markdown, no backticks) with exactly two keys:
-  "plan": A numbered animation plan, 4-8 steps, max 150 words. Focus on what Manim objects/forces/equations to draw.
+  "plan": Start with a physics explanation for the student (no Manim/code terms). For simple questions: 3-5 sentences. For detailed/multi-part questions: multiple paragraphs with **bold** key terms, equations, and cause-and-effect reasoning. Then write "Animation Steps" followed by 4-12 numbered technical steps. Max 300 words. Cover EVERY part of the question.
   "code": ONLY the body of construct(self). 4-space indented Python. No class, no imports, no markdown.
 
 JSON:
@@ -2269,7 +2305,8 @@ Physics code rules:
 - Always show force arrows (Arrow) for ALL relevant forces with MathTex labels.
 - ValueTracker + always_redraw for smooth motion.
 - NEVER write physics arithmetic as Python (mv, Fc, etc. NOT defined) — use MathTex strings.
-- First line must be code (e.g. title = Text(...))."""
+- First line must be code (e.g. title = Text(...)).
+- MULTI-PART QUESTIONS: If the user asks about multiple scenarios or "what if" situations, you MUST animate ALL of them. Use FadeOut to clear one scenario, show a transition title, then animate the next. Never skip any part of what the user asked. For multi-part questions you may use up to 25 seconds total animation time."""
 
     param_hint = ""
     if params:
@@ -2293,6 +2330,9 @@ Physics code rules:
         messages=[
             {"role": "system", "content": (
                 "You output ONLY valid compact JSON with keys 'plan' (string) and 'code' (string). "
+                "The 'plan' value has two sections: first a physics explanation for the student "
+                "(scaled to question complexity — brief for simple questions, thorough with **bold** terms "
+                "and equations for detailed questions), then 'Animation Steps' with numbered technical steps. "
                 "The 'code' value is construct() body only, 4-space indented Python. "
                 "INDENTATION: ALL top-level statements at 4 spaces; never wrap in an outer block. "
                 "No markdown. No prose outside JSON." + param_hint + _no_redefine_hint + _voiceover_sys

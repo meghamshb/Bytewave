@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../utils/api'
 
-const STORAGE_KEY = 'bw-forum-posts'
-const UPVOTE_KEY  = 'bw-forum-upvotes'
-const SYNC_EVENT  = 'bw-forum-changed'
+const STORAGE_KEY   = 'bw-forum-posts'
+const UPVOTE_KEY    = 'bw-forum-upvotes'
+const SYNC_EVENT    = 'bw-forum-changed'
+const VERSION_KEY   = 'bw-forum-version'
+const FORUM_VERSION = 4
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -333,14 +335,20 @@ At what angle do the two motions look most similar?`,
 ]
 
 function initPosts() {
-  const existing = loadPosts()
-  // Only seed if some seed posts are missing
-  const hasAll = SEED_IDS.every(id => existing.some(p => p.id === id))
-  if (!hasAll) {
+  const storedVersion = parseInt(localStorage.getItem(VERSION_KEY) || '0', 10)
+  if (storedVersion < FORUM_VERSION) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_POSTS))
+    localStorage.removeItem(UPVOTE_KEY)
+    localStorage.setItem(VERSION_KEY, String(FORUM_VERSION))
     return SEED_POSTS
   }
-  return existing
+  const existing = loadPosts()
+  const existingIds = new Set(existing.map(p => p.id))
+  const missingSeed = SEED_POSTS.filter(p => !existingIds.has(p.id))
+  if (missingSeed.length === 0) return existing
+  const merged = [...existing, ...missingSeed]
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+  return merged
 }
 
 // ─── Server sync helpers ──────────────────────────────────────────────────────
@@ -375,6 +383,38 @@ async function syncUpvoteToServer(postId, userId) {
   } catch {}
 }
 
+async function syncDeletePostToServer(postId) {
+  try {
+    await apiFetch(`/api/forum/posts/${postId}`, { method: 'DELETE' })
+  } catch {}
+}
+
+async function syncEditPostToServer(postId, title, body) {
+  try {
+    await apiFetch(`/api/forum/posts/${postId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, body }),
+    })
+  } catch {}
+}
+
+async function syncEditReplyToServer(postId, replyId, newBody) {
+  try {
+    await apiFetch(`/api/forum/posts/${postId}/replies/${replyId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: newBody }),
+    })
+  } catch {}
+}
+
+async function syncDeleteReplyToServer(postId, replyId) {
+  try {
+    await apiFetch(`/api/forum/posts/${postId}/replies/${replyId}`, { method: 'DELETE' })
+  } catch {}
+}
+
 /**
  * Attempt to load posts from the server on first mount.
  * Falls back to localStorage SEED_POSTS if the server is unavailable.
@@ -385,11 +425,13 @@ async function fetchPostsFromServer() {
     if (!res.ok) throw new Error()
     const serverPosts = await res.json()
     if (Array.isArray(serverPosts) && serverPosts.length > 0) {
-      // Merge: server posts + local posts not yet on server
       const local = loadPosts()
       const serverIds = new Set(serverPosts.map(p => p.id))
-      const localOnly = local.filter(p => !serverIds.has(p.id) && !SEED_IDS.includes(p.id))
-      const merged = [...serverPosts, ...localOnly]
+      const localOnly = local.filter(p => !serverIds.has(p.id))
+      const allIds = new Set([...serverIds, ...localOnly.map(p => p.id)])
+      const missingSeed = SEED_POSTS.filter(p => !allIds.has(p.id))
+      const merged = [...serverPosts, ...localOnly, ...missingSeed]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
       return merged
     }
@@ -475,11 +517,12 @@ export function useForum() {
   }, []) // stable
 
   // ── Add post ──────────────────────────────────────────────────────────────
-  const addPost = useCallback((title, body, tags, author = 'Student', videoUrl = null, caseId = null) => {
+  const addPost = useCallback((title, body, tags, author = 'Student', videoUrl = null, caseId = null, imageUrls = []) => {
     const newPost = {
       id: generateId(), title, body, author,
       createdAt: new Date().toISOString(),
       tags, videoUrl, upvotes: 0, replies: [],
+      ...(imageUrls.length > 0 ? { imageUrls } : {}),
       ...(caseId ? { case_id: caseId } : {}),
     }
     setPosts(prev => {
@@ -487,7 +530,7 @@ export function useForum() {
       persistAll(next, undefined)
       return next
     })
-    syncAddPostToServer(newPost) // best-effort server sync
+    syncAddPostToServer(newPost)
     return newPost.id
   }, [])
 
@@ -507,6 +550,56 @@ export function useForum() {
     syncAddReplyToServer(postId, newReply) // best-effort server sync
   }, [])
 
+  // ── Edit reply ──────────────────────────────────────────────────────────
+  const editReply = useCallback((postId, replyId, newBody) => {
+    setPosts(prev => {
+      const next = prev.map(p =>
+        p.id === postId
+          ? { ...p, replies: p.replies.map(r => r.id === replyId ? { ...r, body: newBody } : r) }
+          : p
+      )
+      persistAll(next, undefined)
+      return next
+    })
+    syncEditReplyToServer(postId, replyId, newBody)
+  }, [])
+
+  // ── Delete reply ───────────────────────────────────────────────────────
+  const deleteReply = useCallback((postId, replyId) => {
+    setPosts(prev => {
+      const next = prev.map(p =>
+        p.id === postId
+          ? { ...p, replies: p.replies.filter(r => r.id !== replyId) }
+          : p
+      )
+      persistAll(next, undefined)
+      return next
+    })
+    syncDeleteReplyToServer(postId, replyId)
+  }, [])
+
+  // ── Delete post ─────────────────────────────────────────────────────────
+  const deletePost = useCallback((postId) => {
+    setPosts(prev => {
+      const next = prev.filter(p => p.id !== postId)
+      persistAll(next, undefined)
+      return next
+    })
+    syncDeletePostToServer(postId)
+  }, [])
+
+  // ── Edit post ──────────────────────────────────────────────────────────
+  const editPost = useCallback((postId, title, body) => {
+    setPosts(prev => {
+      const next = prev.map(p =>
+        p.id === postId ? { ...p, title, body } : p
+      )
+      persistAll(next, undefined)
+      return next
+    })
+    syncEditPostToServer(postId, title, body)
+  }, [])
+
   const getPost    = useCallback((id) => posts.find(p => p.id === id) ?? null, [posts])
   const hasUpvoted = useCallback((key) => upvoted.has(key), [upvoted])
 
@@ -523,5 +616,5 @@ export function useForum() {
       .slice(0, 3)
   }, [posts])
 
-  return { posts, loading, upvoted, upvotePost, upvoteReply, hasUpvoted, addPost, addReply, getPost, getPostsForCase, findRelated }
+  return { posts, loading, upvoted, upvotePost, upvoteReply, hasUpvoted, addPost, addReply, editReply, deleteReply, deletePost, editPost, getPost, getPostsForCase, findRelated }
 }

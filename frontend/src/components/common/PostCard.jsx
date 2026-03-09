@@ -99,10 +99,12 @@ const MAX_TAGS = 3
 //   onUpvote  — (postId) => void  — from parent's useForum
 //   didUpvote — boolean           — precomputed by parent
 
-function PostCard({ post, onUpvote, didUpvote = false, compact = false, variant = 'default' }) {
+function PostCard({ post, onUpvote, didUpvote = false, compact = false, variant = 'default', isOwner = false, onDelete }) {
   const isTip = variant === 'tip'
   const navigate   = useNavigate()
   const [hover, setHover] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [confirmDel, setConfirmDel] = useState(false)
 
   const replyCount  = post.replies?.length ?? 0
   const visibleTags = useMemo(() => post.tags?.slice(0, MAX_TAGS) ?? [], [post.tags])
@@ -160,21 +162,76 @@ function PostCard({ post, onUpvote, didUpvote = false, compact = false, variant 
         onClick={() => !isTip && navigate(`/forum/${post.id}`)}
         style={{ ...S.content, ...(isCompactLayout ? S.contentCompact : S.contentFull), ...(isTip ? { cursor: 'default' } : {}) }}
       >
-        {/* Animation badge */}
-        {!isTip && post.videoUrl && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: -2 }}>
-            <div style={S.animBadge}><PlayIcon /> Manim animation</div>
+        {/* Media badges */}
+        {!isTip && (post.videoUrl || post.imageUrls?.length > 0) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: -2, flexWrap: 'wrap' }}>
+            {post.videoUrl && (
+              <div style={S.animBadge}><PlayIcon /> {post.videoUrl.startsWith('/uploads/') ? 'Video' : 'Manim animation'}</div>
+            )}
+            {post.imageUrls?.length > 0 && (
+              <div style={{ ...S.animBadge, color: '#34d399', background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.28)' }}>
+                🖼 {post.imageUrls.length} image{post.imageUrls.length > 1 ? 's' : ''}
+              </div>
+            )}
           </div>
         )}
 
         {/* Author row */}
-        <div style={S.authorRow}>
-          <Avatar name={post.author} size={isCompactLayout ? 26 : 32} />
-          <div style={S.authorMeta}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-text)' }}>{post.author}</span>
-            <span style={{ fontSize: 12, color: 'var(--primary-text-muted)' }}>·</span>
-            <span style={{ fontSize: 12, color: 'var(--primary-text-muted)' }}>{timeAgo(post.createdAt)}</span>
+        <div style={{ ...S.authorRow, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Avatar name={post.author} size={isCompactLayout ? 26 : 32} />
+            <div style={S.authorMeta}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-text)' }}>{post.author}</span>
+              <span style={{ fontSize: 12, color: 'var(--primary-text-muted)' }}>·</span>
+              <span style={{ fontSize: 12, color: 'var(--primary-text-muted)' }}>{timeAgo(post.createdAt)}</span>
+            </div>
           </div>
+          {isOwner && !isTip && (
+            <div style={{ position: 'relative' }}>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setShowMenu(m => !m) }} style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px',
+                color: 'var(--primary-text-muted)', fontSize: 18, lineHeight: 1,
+              }}>
+                ···
+              </button>
+              {showMenu && (
+                <div style={{
+                  position: 'absolute', right: 0, top: '100%', zIndex: 50,
+                  background: 'var(--bg-card)', border: '1px solid var(--border-medium)',
+                  borderRadius: 10, padding: 4, minWidth: 120,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                }}>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); navigate(`/forum/${post.id}`) }} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                    padding: '8px 12px', borderRadius: 8, border: 'none',
+                    background: 'none', color: 'var(--accent-main)', fontSize: 13,
+                    fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+                  }}>
+                    ✏️ Edit
+                  </button>
+                  {!confirmDel ? (
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmDel(true) }} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      padding: '8px 12px', borderRadius: 8, border: 'none',
+                      background: 'none', color: '#ef4444', fontSize: 13,
+                      fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      🗑️ Delete
+                    </button>
+                  ) : (
+                    <button type="button" onClick={(e) => { e.stopPropagation(); onDelete?.(post.id); setShowMenu(false) }} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      padding: '8px 12px', borderRadius: 8, border: 'none',
+                      background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: 13,
+                      fontWeight: 700, cursor: 'pointer', textAlign: 'left',
+                    }}>
+                      Confirm delete?
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {isTip ? (
