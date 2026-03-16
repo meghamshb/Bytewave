@@ -1,13 +1,28 @@
-# Core packages only -- heavy ML deps installed at startup
+# ── Core API ─────────────────────────────────────────────────────────────────
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 python-multipart>=0.0.9
 python-dotenv>=1.0.0
+
+# ── LLM / AI ────────────────────────────────────────────────────────────────
 anthropic>=0.40.0
 httpx>=0.27.0
+
+# ── Auth ─────────────────────────────────────────────────────────────────────
 PyJWT>=2.8.0
 bcrypt>=4.1.0
+
+# ── RAG / Embeddings ────────────────────────────────────────────────────────
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+
+# ── Physics simulation & numerics ────────────────────────────────────────────
 numpy>=1.26.0
 scipy>=1.13.0
 pymunk>=6.0.0
 matplotlib>=3.9.0
+
+# ── Manim (requires system libs: cairo, ffmpeg, latex) ───────────────────────
+# Installed separately via backend/requirements-manim.txt where system deps are available
+# manim>=0.18.0
+# manim-voiceover[coqui]>=0.3.4
