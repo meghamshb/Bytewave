@@ -57,8 +57,8 @@
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/meghamshb/Bytewave_Azure_Ready.git
-cd Bytewave_Azure_Ready
+git clone https://github.com/meghamshb/Bytewave.git
+cd Bytewave
 cp .env.example .env
 ```
 
