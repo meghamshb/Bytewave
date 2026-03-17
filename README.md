@@ -1,58 +1,72 @@
 # ByteWave
 
-**AI-powered physics learning platform.** Ask any physics question — get a Manim animation, an interactive Matter.js simulation, adaptive caliber assessments, and a structured skill map.
+> **Ask any physics question. Get a custom animation, an interactive simulation, and a personalized learning path.**
+
+ByteWave is an AI-powered physics learning platform that turns natural language into Manim animations, Matter.js simulations, and adaptive JEE-style assessments. Built with Claude, React, and FastAPI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![React 18](https://img.shields.io/badge/react-18-61dafb.svg)](https://reactjs.org/)
 
 ---
 
-## Features
+## ✨ What It Does
+
+- **Ask** — Type a physics question in plain English (e.g. *"Show me projectile motion at 45°"*)
+- **Animate** — Claude generates Manim code; the app renders a custom explainer video
+- **Simulate** — Interact with Matter.js physics in real time
+- **Assess** — Take adaptive MCQs that adjust to your mastery level
+- **Track** — Visual skill map shows your progress across topics
+
+---
+
+## 🎯 Features
 
 | Feature | Description |
 |---------|-------------|
-| **AI Physics Chat** | Claude-powered tutor that generates custom Manim animations from natural language |
-| **Interactive Simulations** | Matter.js physics engine for hands-on exploration |
-| **Adaptive Assessments** | JEE-style MCQs with mastery-weighted difficulty and one-at-a-time flow |
-| **Skill Map** | Visual constellation of physics topics with recency-weighted mastery tracking |
-| **RAG Accuracy Layer** | ChromaDB + sentence-transformers for physics correctness and template matching |
-| **Community Forum** | In-app discussion for students |
+| 🤖 **AI Physics Chat** | Claude-powered tutor that generates custom Manim animations from natural language |
+| 🎮 **Interactive Simulations** | Matter.js physics engine for hands-on exploration |
+| 📝 **Adaptive Assessments** | JEE-style MCQs with mastery-weighted difficulty and one-at-a-time flow |
+| 🗺️ **Skill Map** | Visual constellation of physics topics with recency-weighted mastery tracking |
+| 📚 **RAG Accuracy Layer** | ChromaDB + sentence-transformers for physics correctness and template matching |
+| 💬 **Community Forum** | In-app discussion for students |
 
 ---
 
-## Architecture
-
-```
-┌─────────────────┐     ┌──────────────────────────────────────────┐
-│  React + Vite   │────▶│  FastAPI Backend                         │
-│  (Frontend)     │     │  • Claude (plan + code gen)                │
-└─────────────────┘     │  • Manim (video rendering)                │
-                        │  • ChromaDB RAG (physics knowledge)       │
-                        │  • Adaptive learning engine               │
-                        └──────────────────────────────────────────┘
-```
-
-- **Frontend**: React 18, Vite, React Router, Framer Motion, KaTeX
-- **Backend**: FastAPI, Uvicorn
-- **AI**: Anthropic Claude (Opus/Sonnet)
-- **Rendering**: Manim CE (Cairo, FFmpeg, LaTeX)
-- **Data**: SQLite (learning DB), ChromaDB (RAG)
-
----
-
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technologies |
 |-------|--------------|
-| Frontend | React, Vite, React Router, Framer Motion, KaTeX, Matter.js, Spline |
+| Frontend | React 18, Vite, React Router, Framer Motion, KaTeX, Matter.js, Spline |
 | Backend | FastAPI, Python 3.12 |
-| AI / LLM | Anthropic Claude |
+| AI / LLM | Anthropic Claude (Opus/Sonnet) |
 | Animation | Manim Community Edition |
 | RAG | ChromaDB, sentence-transformers |
 | Auth | JWT, bcrypt |
 
 ---
 
-## Quick Start
+## 🏗️ Architecture
+
+```
+┌─────────────────┐     ┌──────────────────────────────────────────┐
+│  React + Vite   │────▶│  FastAPI Backend                         │
+│  (Frontend)     │     │  • Claude (plan + code gen)               │
+└─────────────────┘     │  • Manim (video rendering)               │
+                        │  • ChromaDB RAG (physics knowledge)      │
+                        │  • Adaptive learning engine               │
+                        └──────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- Node.js 18+
+- [Anthropic API key](https://console.anthropic.com) (free tier available)
 
 ### 1. Clone and configure
 
@@ -62,23 +76,25 @@ cd Bytewave
 cp .env.example .env
 ```
 
-**Required:** Add your Anthropic API key to `.env`. Get a free key at [console.anthropic.com](https://console.anthropic.com) → API Keys.
+Add your Anthropic API key to `.env`:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 ```
 
-Without this key, AI features (chat, animations, assessments) will not work.
+> ⚠️ Without this key, AI features (chat, animations, assessments) will not work.
 
 ### 2. Backend
 
 ```bash
 pip install -r backend/requirements.txt
-pip install -r backend/requirements-manim.txt   # for Manim animations
+pip install -r backend/requirements-manim.txt
 ```
 
-**macOS (Manim system deps):** `brew install cairo pkg-config ffmpeg`  
-**Linux:** `sudo apt install libcairo2-dev pkg-config ffmpeg texlive-latex-base`
+**System deps for Manim (required for animations):**
+
+- **macOS:** `brew install cairo pkg-config ffmpeg`
+- **Linux:** `sudo apt install libcairo2-dev pkg-config ffmpeg texlive-latex-base`
 
 ### 3. Frontend
 
@@ -92,12 +108,14 @@ cd frontend && npm install && cd ..
 ./run.sh
 ```
 
-- **Frontend** → http://localhost:5173  
-- **Backend** → http://localhost:8000  
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
 
 ---
 
-## Docker
+## 🐳 Docker
 
 ```bash
 cp .env.example .env
@@ -105,31 +123,28 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-App is served at **http://localhost:8000** (backend serves the built frontend).
+Served at **http://localhost:8000** — backend serves the built frontend.
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Claude API key ([console.anthropic.com](https://console.anthropic.com)) |
+| `ANTHROPIC_API_KEY` | Yes | Claude API key — [get one here](https://console.anthropic.com) |
 | `JWT_SECRET` | No | Fixed secret for production; ephemeral if unset |
 | `CORS_ORIGINS` | No | Comma-separated allowed origins |
-| `ADMIN_KEY` | No | For admin endpoints (e.g. prerender-clips) |
+| `ADMIN_KEY` | No | For admin endpoints |
 | `VITE_POSTHOG_KEY` | No | PostHog analytics (frontend) |
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 ├── frontend/           React + Vite app
-│   ├── src/
-│   │   ├── screens/    Page components (Home, Landing, Assess, …)
-│   │   ├── components/ Shared UI
-│   │   ├── hooks/      Auth, analytics, forum
-│   │   └── data/       Team profiles, static data
+│   ├── src/screens/    Home, Landing, Assess, Chat, …
+│   ├── src/components/ Shared UI
 │   └── public/         Static assets
 ├── backend/            FastAPI server
 │   ├── main.py         API routes, SPA serving
@@ -146,27 +161,19 @@ App is served at **http://localhost:8000** (backend serves the built frontend).
 
 ---
 
-## Demo
+## 📸 Demo
 
-- **Live**: Add your deployed URL here
-- **Screenshots**: See `media/screenshots/`
-
----
-
-## Status
-
-- **Core**: AI chat, Manim rendering, adaptive assessments, skill map — implemented
-- **Deployment**: Docker-ready; Azure App Service (container) supported
-- **Manim**: Requires system deps (cairo, ffmpeg, LaTeX); use Docker for production
+- **Screenshots:** `media/screenshots/`
+- **Live demo:** Add your deployed URL here when available
 
 ---
 
-## Team
+## 👥 Team
 
-Built by Meghamsh Balantrapu, Jonnevan Chandra, Samanyu Gaur, Hanyang (Sonic) Liu, and Jonathan Chandra.
+Built by **Meghamsh Balantrapu**, **Jonnevan Chandra**, **Samanyu Gaur**, **Hanyang (Sonic) Liu**, and **Jonathan Chandra**.
 
 ---
 
-## License
+## 📄 License
 
 MIT — see [LICENSE](LICENSE).
