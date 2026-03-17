@@ -165,6 +165,8 @@ Served at **http://localhost:8000** — backend serves the built frontend.
 
 Please refer to the [LinkedIn post](https://www.linkedin.com/in/meghamshbalantrapu/) for a demo and walkthrough.
 
+> Cloud deployment is temporarily down; the app runs fully locally with the setup above.
+
 ---
 
 ## 👥 Team
