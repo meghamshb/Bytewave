@@ -163,8 +163,7 @@ Served at **http://localhost:8000** — backend serves the built frontend.
 
 ## 📸 Demo
 
-- **Screenshots:** `media/screenshots/`
-- **Live demo:** Add your deployed URL here when available
+Please refer to the [LinkedIn post](https://www.linkedin.com/in/meghamshbalantrapu/) for a demo and walkthrough.
 
 ---
 
