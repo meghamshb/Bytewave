@@ -50,7 +50,7 @@ The March 10 deployment used:
 Oryx may not have Node in the Python build image. Build the frontend locally and include it in the deploy:
 
 ```bash
-cd /Users/meghamshbalantrapu/Cursor/ByteWave/Bytewave
+cd Bytewave
 cd frontend && npm ci --no-audit --no-fund && npm run build && cd ..
 ```
 
@@ -78,7 +78,7 @@ az webapp config set \
 ### Step 4: Deploy via `az webapp up`
 
 ```bash
-cd /Users/meghamshbalantrapu/Cursor/ByteWave/Bytewave
+cd Bytewave
 
 az webapp up \
   --name bytewave-app \
@@ -94,7 +94,7 @@ az webapp up \
 ### Alternative: Zip deploy (if `az webapp up` fails)
 
 ```bash
-cd /Users/meghamshbalantrapu/Cursor/ByteWave/Bytewave
+cd Bytewave
 
 # Build frontend first
 cd frontend && npm ci && npm run build && cd ..
@@ -179,7 +179,7 @@ Use **Docker on Azure App Service** (Web App for Containers):
 
 ```bash
 # 1. Build frontend
-cd /Users/meghamshbalantrapu/Cursor/ByteWave/Bytewave
+cd Bytewave
 cd frontend && npm ci --no-audit --no-fund && npm run build && cd ..
 
 # 2. Set env (replace <your-key>)
