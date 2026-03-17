@@ -618,7 +618,7 @@ def generate_questions(skill: str, case_id: str, mastery_score: int) -> list[dic
     case_desc  = case_obj.get("desc", "")
     difficulty = _difficulty_tier(mastery_score)
 
-    prompt = f"""You are a competitive physics exam question writer at JEE level.
+    prompt = f"""You are a competitive physics exam question writer.
 
 Generate EXACTLY 3 multiple-choice questions (MCQs) for:
   Topic: {skill_label}
@@ -1046,7 +1046,7 @@ def generate_single_question(
         numbered = "\n".join(f"  {i+1}. {q}" for i, q in enumerate(previous_questions))
         prev_block = f"\nQuestions already asked this session (do NOT repeat these sub-concepts):\n{numbered}\n"
 
-    prompt = f"""You are a competitive physics exam question writer at JEE level.
+    prompt = f"""You are a competitive physics exam question writer.
 
 Generate EXACTLY 1 multiple-choice question (MCQ) for:
   Topic: {skill_label}
