@@ -1,130 +1,172 @@
-# Byte Wave
+# ByteWave
 
 **AI-powered physics learning platform.** Ask any physics question — get a Manim animation, an interactive Matter.js simulation, adaptive caliber assessments, and a structured skill map.
 
-## Project layout
-
-```
-├── frontend/              React + Vite app (main UI)
-│   └── src/
-│       ├── screens/       Page-level components (Home, Landing, Assess, …)
-│       ├── components/    Shared UI components
-│       │   ├── dashboard/ Dashboard sub-components
-│       │   └── nav/       Navigation sub-components
-│       ├── hooks/         Custom React hooks (auth, analytics, forum, …)
-│       ├── data/          Static data (team profiles)
-│       └── utils/         Utility functions
-├── backend/               FastAPI server — LLM pipeline, Manim renderer, RAG
-│   ├── main.py            API routes + production SPA serving
-│   ├── agent.py           Claude AI agent (plan, code-gen, follow-up)
-│   ├── learn.py           Adaptive learning engine, mastery scoring, questions
-│   ├── manim_runner.py    Manim subprocess runner with sandboxing
-│   └── rag/               ChromaDB knowledge base for physics accuracy
-├── media_output/          Auto-generated Manim videos (created at runtime)
-├── .env                   Environment variables (copy from .env.example)
-├── run.sh                 One-command startup (dev or prod mode)
-├── Dockerfile             Multi-stage container build
-└── docker-compose.yml     Single-command deployment
-```
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Quick start (development)
+## Features
 
-### 1. Environment
+| Feature | Description |
+|---------|-------------|
+| **AI Physics Chat** | Claude-powered tutor that generates custom Manim animations from natural language |
+| **Interactive Simulations** | Matter.js physics engine for hands-on exploration |
+| **Adaptive Assessments** | JEE-style MCQs with mastery-weighted difficulty and one-at-a-time flow |
+| **Skill Map** | Visual constellation of physics topics with recency-weighted mastery tracking |
+| **RAG Accuracy Layer** | ChromaDB + sentence-transformers for physics correctness and template matching |
+| **Community Forum** | In-app discussion for students |
 
-```bash
-cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+---
+
+## Architecture
+
+```
+┌─────────────────┐     ┌──────────────────────────────────────────┐
+│  React + Vite   │────▶│  FastAPI Backend                         │
+│  (Frontend)     │     │  • Claude (plan + code gen)                │
+└─────────────────┘     │  • Manim (video rendering)                │
+                        │  • ChromaDB RAG (physics knowledge)       │
+                        │  • Adaptive learning engine               │
+                        └──────────────────────────────────────────┘
 ```
 
-### 2. Backend dependencies
+- **Frontend**: React 18, Vite, React Router, Framer Motion, KaTeX
+- **Backend**: FastAPI, Uvicorn
+- **AI**: Anthropic Claude (Opus/Sonnet)
+- **Rendering**: Manim CE (Cairo, FFmpeg, LaTeX)
+- **Data**: SQLite (learning DB), ChromaDB (RAG)
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| Frontend | React, Vite, React Router, Framer Motion, KaTeX, Matter.js, Spline |
+| Backend | FastAPI, Python 3.12 |
+| AI / LLM | Anthropic Claude |
+| Animation | Manim Community Edition |
+| RAG | ChromaDB, sentence-transformers |
+| Auth | JWT, bcrypt |
+
+---
+
+## Quick Start
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/meghamshb/Bytewave_Azure_Ready.git
+cd Bytewave_Azure_Ready
+cp .env.example .env
+```
+
+**Required:** Add your Anthropic API key to `.env`. Get a free key at [console.anthropic.com](https://console.anthropic.com) → API Keys.
+
+```
+ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
+```
+
+Without this key, AI features (chat, animations, assessments) will not work.
+
+### 2. Backend
 
 ```bash
 pip install -r backend/requirements.txt
+pip install -r backend/requirements-manim.txt   # for Manim animations
 ```
 
-For Manim video rendering (optional but recommended):
+**macOS (Manim system deps):** `brew install cairo pkg-config ffmpeg`  
+**Linux:** `sudo apt install libcairo2-dev pkg-config ffmpeg texlive-latex-base`
+
+### 3. Frontend
 
 ```bash
-# macOS
-brew install cairo pkg-config ffmpeg
-pip install -r backend/requirements-manim.txt
-
-# Linux (Ubuntu/Debian)
-sudo apt install libcairo2-dev pkg-config ffmpeg texlive-latex-base
-pip install -r backend/requirements-manim.txt
+cd frontend && npm install && cd ..
 ```
 
-### 3. Frontend dependencies
-
-```bash
-cd frontend && npm install
-```
-
-### 4. Run (development)
+### 4. Run
 
 ```bash
 ./run.sh
 ```
 
-- **Frontend** → http://localhost:5173
-- **Backend API** → http://localhost:8000
+- **Frontend** → http://localhost:5173  
+- **Backend** → http://localhost:8000  
 
 ---
 
-## Production deployment
-
-### Option A: Docker (recommended)
+## Docker
 
 ```bash
 cp .env.example .env
-# Edit .env with your ANTHROPIC_API_KEY
-
+# Add ANTHROPIC_API_KEY to .env
 docker compose up --build -d
 ```
 
-The app is served at **http://localhost:8000** — the FastAPI backend serves the built React frontend, no separate web server needed.
-
-### Option B: Direct
-
-```bash
-./run.sh --prod
-```
-
-This builds the frontend and starts a single uvicorn process that serves both the API and the React SPA on port 8000.
-
-### Option C: Custom
-
-```bash
-# Build frontend
-cd frontend && npm ci && npm run build && cd ..
-
-# Start backend (it auto-detects frontend/dist/ and serves it)
-python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
-```
-
-### Environment variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | Yes | Claude API key for AI features |
-| `CORS_ORIGINS` | No | Comma-separated allowed origins (defaults to localhost) |
-| `ADMIN_KEY` | No | Protects admin endpoints like `/api/admin/prerender-clips` |
-| `VITE_POSTHOG_KEY` | No | PostHog analytics key (frontend) |
+App is served at **http://localhost:8000** (backend serves the built frontend).
 
 ---
 
-## Key features
+## Environment Variables
 
-| Feature | Stack |
-|---|---|
-| AI physics chat + Manim animations | Claude (Anthropic) → Manim |
-| Interactive physics simulations | Matter.js |
-| Adaptive assessments (MCQ, one-at-a-time) | Claude + adaptive mastery engine |
-| Netflix-style recommendations | Mastery-weighted algorithm |
-| Physics accuracy layer | RAG (ChromaDB + sentence-transformers) |
-| Skill map + mastery tracking | React + recency-weighted scoring |
-| Community forum | FastAPI in-memory store |
-| Auth + onboarding | localStorage (Supabase-ready) |
-| Analytics | PostHog |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Claude API key ([console.anthropic.com](https://console.anthropic.com)) |
+| `JWT_SECRET` | No | Fixed secret for production; ephemeral if unset |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins |
+| `ADMIN_KEY` | No | For admin endpoints (e.g. prerender-clips) |
+| `VITE_POSTHOG_KEY` | No | PostHog analytics (frontend) |
+
+---
+
+## Project Structure
+
+```
+├── frontend/           React + Vite app
+│   ├── src/
+│   │   ├── screens/    Page components (Home, Landing, Assess, …)
+│   │   ├── components/ Shared UI
+│   │   ├── hooks/      Auth, analytics, forum
+│   │   └── data/       Team profiles, static data
+│   └── public/         Static assets
+├── backend/            FastAPI server
+│   ├── main.py         API routes, SPA serving
+│   ├── agent.py        Claude agent (plan, code, follow-up)
+│   ├── learn.py        Adaptive learning, mastery
+│   ├── manim_runner.py Manim subprocess runner
+│   └── rag/            ChromaDB knowledge base
+├── docs/               Documentation
+├── media/              Screenshots, demo assets
+├── run.sh              Dev/prod startup
+├── Dockerfile          Multi-stage container build
+└── docker-compose.yml  Container deployment
+```
+
+---
+
+## Demo
+
+- **Live**: Add your deployed URL here
+- **Screenshots**: See `media/screenshots/`
+
+---
+
+## Status
+
+- **Core**: AI chat, Manim rendering, adaptive assessments, skill map — implemented
+- **Deployment**: Docker-ready; Azure App Service (container) supported
+- **Manim**: Requires system deps (cairo, ffmpeg, LaTeX); use Docker for production
+
+---
+
+## Team
+
+Built by Meghamsh Balantrapu, Jonnevan Chandra, Samanyu Gaur, Hanyang (Sonic) Liu, and Jonathan Chandra.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

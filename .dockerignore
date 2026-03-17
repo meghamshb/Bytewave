@@ -41,8 +41,8 @@ ByteWave/
 *.log
 server.log
 
-# Docs
-architecture.md
+# Docs (not needed in container)
+docs/
 *.md
-!backend/assets/VOICE_SETUP.md
 !README.md
+!backend/assets/VOICE_SETUP.md
