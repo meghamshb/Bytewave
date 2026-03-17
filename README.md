@@ -2,7 +2,7 @@
 
 > **Ask any physics question. Get a custom animation, an interactive simulation, and a personalized learning path.**
 
-ByteWave is an AI-powered physics learning platform that turns natural language into Manim animations, Matter.js simulations, and adaptive JEE-style assessments. Built with Claude, React, and FastAPI.
+ByteWave is an AI-powered physics learning platform that turns natural language into Manim animations, Matter.js simulations, and adaptive style assessments. Built with Claude, React, and FastAPI.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
